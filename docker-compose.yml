@@ -1,6 +1,10 @@
+version: '3.8'
+
 services:
   easyswitcher:
-    build: .
+    image: ghcr.io/aiqinxuancai/easyswitcher:latest
+    container_name: easyswitcher
+    restart: unless-stopped
     ports:
       - "7085:7085"
     volumes:
