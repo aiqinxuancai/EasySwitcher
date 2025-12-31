@@ -1,9 +1,9 @@
 [server]
-listen = "http://0.0.0.0:8080"
+listen = "http://0.0.0.0:7085"
 auth_key = "change-me"
 default_group = "default"
 strategy = "round_robin"
-timeout_seconds = 120
+timeout_seconds = 600
 max_failover = 2
 max_request_body_bytes = 10485760
 

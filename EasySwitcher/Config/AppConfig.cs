@@ -2,9 +2,21 @@ namespace EasySwitcher.Config;
 
 public sealed class AppConfig
 {
+    /// <summary>
+    /// 服务端配置。
+    /// </summary>
     public ServerConfig Server { get; set; } = new();
+    /// <summary>
+    /// 健康检测配置。
+    /// </summary>
     public HealthConfig Health { get; set; } = new();
+    /// <summary>
+    /// 上游平台列表。
+    /// </summary>
     public List<PlatformConfig> Platforms { get; set; } = new();
+    /// <summary>
+    /// 分组覆盖配置，键为分组名。
+    /// </summary>
     public Dictionary<string, GroupConfig> Groups { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     public void ApplyDefaultsAndValidate()
@@ -16,7 +28,7 @@ public sealed class AppConfig
 
         if (string.IsNullOrWhiteSpace(Server.Listen))
         {
-            Server.Listen = "http://0.0.0.0:8080";
+            Server.Listen = "http://0.0.0.0:7085";
         }
 
         if (string.IsNullOrWhiteSpace(Server.AuthKey))
@@ -36,7 +48,7 @@ public sealed class AppConfig
 
         if (Server.TimeoutSeconds <= 0)
         {
-            Server.TimeoutSeconds = 120;
+            Server.TimeoutSeconds = 600;
         }
 
         if (Server.MaxFailover <= 0)

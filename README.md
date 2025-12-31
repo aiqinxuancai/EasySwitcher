@@ -24,7 +24,7 @@ dotnet run --project EasySwitcher/EasySwitcher.csproj -- --config config.toml
 3. 发送请求：
 
 ```bash
-curl http://localhost:8080/v1/chat/completions \
+curl http://localhost:7085/v1/chat/completions \
   -H "Authorization: Bearer change-me" \
   -H "Content-Type: application/json" \
   -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"hello"}]}'
@@ -33,7 +33,7 @@ curl http://localhost:8080/v1/chat/completions \
 ## 流式示例
 
 ```bash
-curl -N http://localhost:8080/v1/chat/completions \
+curl -N http://localhost:7085/v1/chat/completions \
   -H "Authorization: Bearer change-me" \
   -H "Content-Type: application/json" \
   -d '{"model":"gpt-4o-mini","stream":true,"messages":[{"role":"user","content":"hello"}]}'
@@ -51,17 +51,13 @@ Authorization: Bearer <server.auth_key>
 
 ## 分组路由
 
-可通过请求头或查询参数指定分组：
+通过路径前缀指定分组，格式为：
 
-```bash
-X-EasySwitcher-Group: vip
+```
+http://<host>/{GROUP}/v1/...
 ```
 
-或：
-
-```bash
-?group=vip
-```
+当 `{GROUP}` 与已配置分组名称匹配时，将使用该分组，并在转发到上游时移除该路径段。
 
 ## 配置文件位置
 
@@ -75,11 +71,11 @@ EASYSWITCHER_CONFIG=/path/to/config.toml
 
 顶层字段：
 
-- `server.listen`: 监听地址，如 `http://0.0.0.0:8080`
+- `server.listen`: 监听地址，如 `http://0.0.0.0:7085`
 - `server.auth_key`: 必填，用于外部调用认证
 - `server.default_group`: 默认分组
 - `server.strategy`: 默认负载均衡策略
-- `server.timeout_seconds`: 上游请求超时（秒）
+- `server.timeout_seconds`: 上游请求超时（秒），默认 600
 - `server.max_failover`: 最大尝试次数（包含首次）
 - `server.max_request_body_bytes`: 可重试请求体的最大缓冲大小
 - `health.failure_threshold`: 失败次数达到后标记为不健康
@@ -114,7 +110,7 @@ EASYSWITCHER_CONFIG=/path/to/config.toml
 
 ```bash
 docker build -t easyswitcher .
-docker run --rm -p 8080:8080 -v "$PWD/config.toml:/app/config.toml:ro" -e EASYSWITCHER_CONFIG=/app/config.toml easyswitcher
+docker run --rm -p 7085:7085 -v "$PWD/config.toml:/app/config.toml:ro" -e EASYSWITCHER_CONFIG=/app/config.toml easyswitcher
 ```
 
 或使用 docker-compose：

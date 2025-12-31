@@ -11,5 +11,5 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then RID="linux-arm64"; else RID="linux-x64"
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=build /app/publish .
-ENV ASPNETCORE_URLS=http://0.0.0.0:8080
+ENV ASPNETCORE_URLS=http://0.0.0.0:7085
 ENTRYPOINT ["./EasySwitcher"]

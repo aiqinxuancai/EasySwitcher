@@ -32,6 +32,7 @@ public sealed class ProxyService
     private readonly HealthTracker _health;
     private readonly RequestLogger _logger;
     private readonly HttpClient _httpClient;
+    private readonly HashSet<string> _knownGroups;
 
     public ProxyService(AppConfig config, LoadBalancer loadBalancer, HealthTracker health, RequestLogger logger)
     {
@@ -39,6 +40,7 @@ public sealed class ProxyService
         _loadBalancer = loadBalancer;
         _health = health;
         _logger = logger;
+        _knownGroups = BuildKnownGroups(config);
         _httpClient = new HttpClient(new SocketsHttpHandler
         {
             AllowAutoRedirect = false,
@@ -58,7 +60,7 @@ public sealed class ProxyService
             return;
         }
 
-        var group = ResolveGroup(context);
+        var (group, forwardPath) = ResolveGroupAndPath(context);
         if (!_config.Groups.TryGetValue(group, out var groupConfig))
         {
             groupConfig = null;
@@ -92,7 +94,7 @@ public sealed class ProxyService
 
             try
             {
-                using var requestMessage = BuildRequestMessage(context, platform, bufferedBody);
+                using var requestMessage = BuildRequestMessage(context, platform, bufferedBody, forwardPath);
                 using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
                 using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted, timeoutCts.Token);
 
@@ -168,26 +170,40 @@ public sealed class ProxyService
         return false;
     }
 
-    private string ResolveGroup(HttpContext context)
+    private (string Group, PathString ForwardPath) ResolveGroupAndPath(HttpContext context)
     {
-        if (context.Request.Headers.TryGetValue("X-EasySwitcher-Group", out var groupHeader) &&
-            !string.IsNullOrWhiteSpace(groupHeader))
+        var requestPath = context.Request.Path.HasValue ? context.Request.Path.Value! : "/";
+        if (string.IsNullOrWhiteSpace(requestPath) || requestPath == "/")
         {
-            return groupHeader.ToString();
+            return (_config.Server.DefaultGroup, context.Request.Path);
         }
 
-        if (context.Request.Query.TryGetValue("group", out var groupQuery) &&
-            !string.IsNullOrWhiteSpace(groupQuery))
+        var trimmed = requestPath.TrimStart('/');
+        if (string.IsNullOrWhiteSpace(trimmed))
         {
-            return groupQuery.ToString();
+            return (_config.Server.DefaultGroup, new PathString("/"));
         }
 
-        return _config.Server.DefaultGroup;
+        var slashIndex = trimmed.IndexOf('/');
+        var firstSegment = slashIndex >= 0 ? trimmed[..slashIndex] : trimmed;
+
+        if (_knownGroups.Contains(firstSegment))
+        {
+            var remaining = slashIndex >= 0 ? trimmed[slashIndex..] : string.Empty;
+            if (string.IsNullOrEmpty(remaining))
+            {
+                remaining = "/";
+            }
+
+            return (firstSegment, new PathString(remaining));
+        }
+
+        return (_config.Server.DefaultGroup, context.Request.Path);
     }
 
-    private HttpRequestMessage BuildRequestMessage(HttpContext context, PlatformState platform, BufferedRequestBody bufferedBody)
+    private HttpRequestMessage BuildRequestMessage(HttpContext context, PlatformState platform, BufferedRequestBody bufferedBody, PathString forwardPath)
     {
-        var targetUri = BuildTargetUri(context.Request, platform.BaseUri);
+        var targetUri = BuildTargetUri(platform.BaseUri, forwardPath, context.Request.QueryString);
         var requestMessage = new HttpRequestMessage(new HttpMethod(context.Request.Method), targetUri);
 
         var hasBody = bufferedBody.Body is { Length: > 0 } ||
@@ -213,10 +229,10 @@ public sealed class ProxyService
         return requestMessage;
     }
 
-    private static Uri BuildTargetUri(HttpRequest request, Uri baseUri)
+    private static Uri BuildTargetUri(Uri baseUri, PathString path, QueryString query)
     {
         var basePath = baseUri.AbsolutePath.TrimEnd('/');
-        var requestPath = request.Path.HasValue ? request.Path.Value! : "/";
+        var requestPath = path.HasValue ? path.Value! : "/";
         if (!requestPath.StartsWith("/", StringComparison.Ordinal))
         {
             requestPath = "/" + requestPath;
@@ -229,9 +245,36 @@ public sealed class ProxyService
         var builder = new UriBuilder(baseUri)
         {
             Path = combinedPath,
-            Query = request.QueryString.HasValue ? request.QueryString.Value!.TrimStart('?') : string.Empty,
+            Query = query.HasValue ? query.Value!.TrimStart('?') : string.Empty,
         };
         return builder.Uri;
+    }
+
+    private static HashSet<string> BuildKnownGroups(AppConfig config)
+    {
+        var groups = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(config.Server.DefaultGroup))
+        {
+            groups.Add(config.Server.DefaultGroup);
+        }
+
+        foreach (var group in config.Groups.Keys)
+        {
+            if (!string.IsNullOrWhiteSpace(group))
+            {
+                groups.Add(group);
+            }
+        }
+
+        foreach (var platform in config.Platforms)
+        {
+            if (!string.IsNullOrWhiteSpace(platform.Group))
+            {
+                groups.Add(platform.Group);
+            }
+        }
+
+        return groups;
     }
 
     private static void CopyRequestHeaders(HttpContext context, PlatformState platform, HttpRequestMessage requestMessage)
