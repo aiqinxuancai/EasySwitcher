@@ -70,8 +70,11 @@ public sealed class ProxyService
         var candidates = _loadBalancer.GetCandidates(group, groupConfig, _config, now);
         if (candidates.Count == 0)
         {
+            var hasGroupPlatforms = _config.Platforms.Any(p => p.Enabled &&
+                                                               string.Equals(p.Group, group, StringComparison.OrdinalIgnoreCase));
             context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-            await context.Response.WriteAsync("No upstream configured.", context.RequestAborted);
+            var message = hasGroupPlatforms ? "暂无健康上游。" : "未配置上游。";
+            await context.Response.WriteAsync(message, context.RequestAborted);
             return;
         }
 
@@ -103,8 +106,8 @@ public sealed class ProxyService
 
                 if (_health.IsRetryableStatusCode(statusCode) && attempt + 1 < attemptLimit && !context.Response.HasStarted)
                 {
-                    _health.ReportFailure(platform, DateTimeOffset.UtcNow);
-                    LogAttempt(context, platform, group, statusCode, attemptStopwatch, attempt + 1, attemptLimit, false, "retryable status");
+                    ReportFailure(platform, group, $"状态码 {statusCode}");
+                    LogAttempt(context, platform, group, statusCode, attemptStopwatch, attempt + 1, attemptLimit, false, "可重试状态码");
                     continue;
                 }
 
@@ -113,14 +116,14 @@ public sealed class ProxyService
                 await response.Content.CopyToAsync(context.Response.Body, context.RequestAborted);
                 await context.Response.Body.FlushAsync(context.RequestAborted);
 
-                var success = response.IsSuccessStatusCode;
+                var success = statusCode < 400;
                 if (success)
                 {
                     _health.ReportSuccess(platform);
                 }
                 else
                 {
-                    _health.ReportFailure(platform, DateTimeOffset.UtcNow);
+                    ReportFailure(platform, group, $"状态码 {statusCode}");
                 }
 
                 LogAttempt(context, platform, group, statusCode, attemptStopwatch, attempt + 1, attemptLimit, success, null);
@@ -133,12 +136,12 @@ public sealed class ProxyService
             catch (OperationCanceledException) when (!context.RequestAborted.IsCancellationRequested)
             {
                 statusCode = StatusCodes.Status504GatewayTimeout;
-                _health.ReportFailure(platform, DateTimeOffset.UtcNow);
-                LogAttempt(context, platform, group, statusCode, attemptStopwatch, attempt + 1, attemptLimit, false, "timeout");
+                ReportFailure(platform, group, "超时");
+                LogAttempt(context, platform, group, statusCode, attemptStopwatch, attempt + 1, attemptLimit, false, "超时");
             }
             catch (Exception ex)
             {
-                _health.ReportFailure(platform, DateTimeOffset.UtcNow);
+                ReportFailure(platform, group, "异常");
                 LogAttempt(context, platform, group, statusCode, attemptStopwatch, attempt + 1, attemptLimit, false, ex.Message);
             }
 
@@ -151,7 +154,7 @@ public sealed class ProxyService
         if (!context.Response.HasStarted)
         {
             context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-            await context.Response.WriteAsync("No healthy upstream available.", context.RequestAborted);
+            await context.Response.WriteAsync("暂无健康上游。", context.RequestAborted);
         }
     }
 
@@ -298,11 +301,6 @@ public sealed class ProxyService
                 continue;
             }
 
-            if (string.Equals(header.Key, "X-EasySwitcher-Group", StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
             if (DefaultKeyHeaders.Contains(header.Key) || string.Equals(header.Key, keyHeader, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
@@ -364,5 +362,24 @@ public sealed class ProxyService
             attemptLimit,
             error);
         _logger.Log(entry);
+    }
+
+    private void ReportFailure(PlatformState platform, string group, string reason)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var circuit = _health.ReportFailure(platform, now);
+        if (circuit is null)
+        {
+            return;
+        }
+
+        _logger.LogCircuitBreak(new CircuitBreakLogEntry(
+            now,
+            group,
+            platform.Config.Name,
+            reason,
+            circuit.Cooldown,
+            circuit.Until,
+            circuit.TripCount));
     }
 }

@@ -22,19 +22,14 @@ public sealed class HealthTracker
         platform.ReportSuccess();
     }
 
-    public void ReportFailure(PlatformState platform, DateTimeOffset now)
+    public CircuitBreakResult? ReportFailure(PlatformState platform, DateTimeOffset now)
     {
         var cooldown = TimeSpan.FromSeconds(_config.CooldownSeconds);
-        platform.ReportFailure(_config.FailureThreshold, cooldown, now);
+        return platform.ReportFailure(_config.FailureThreshold, cooldown, now);
     }
 
     public bool IsRetryableStatusCode(int statusCode)
     {
-        if (_config.RetryOn429 && statusCode == 429)
-        {
-            return true;
-        }
-
-        return statusCode >= _config.RetryableStatusMin && statusCode <= _config.RetryableStatusMax;
+        return statusCode >= 400;
     }
 }

@@ -1,12 +1,12 @@
 # EasySwitcher
 
-EasySwitcher 是一个轻量的 API 转发与负载均衡服务，支持随机、轮询、权重与故障转移。它在转发时仅替换 API Key 与 Host，保留其他请求参数，并支持流式响应。所有调用都会输出详细日志，便于排查问题。
+EasySwitcher 是一个轻量的 API 转发与负载均衡服务，支持加权轮询与主备故障转移。它在转发时仅替换 API Key 与 Host，保留其他请求参数，并支持流式响应。所有调用都会输出详细日志，便于排查问题。
 
 ## 功能特性
 
-- 负载均衡策略：`round_robin`、`random`、`weighted`、`failover`
+- 负载均衡策略：`weighted`、`failover`
 - 支持分组配置与覆盖策略（超时、故障转移次数等）
-- 健康检测与冷却时间，支持可重试状态码范围
+- 健康检测与冷却时间，400+ 错误触发熔断，连续触发时冷却倍增
 - 流式转发（响应实时透传）
 - 认证使用 `Authorization: Bearer`
 - 控制台日志包含时间、分组、平台、状态码、耗时等
@@ -74,14 +74,12 @@ EASYSWITCHER_CONFIG=/path/to/config.toml
 - `server.listen`: 监听地址，如 `http://0.0.0.0:7085`
 - `server.auth_key`: 必填，用于外部调用认证
 - `server.default_group`: 默认分组
-- `server.strategy`: 默认负载均衡策略
+- `server.strategy`: 默认负载均衡策略（weighted 或 failover）
 - `server.timeout_seconds`: 上游请求超时（秒），默认 600
 - `server.max_failover`: 最大尝试次数（包含首次）
 - `server.max_request_body_bytes`: 可重试请求体的最大缓冲大小
-- `health.failure_threshold`: 失败次数达到后标记为不健康
-- `health.cooldown_seconds`: 冷却时间（秒）
-- `health.retryable_status_min/max`: 可重试状态码范围（默认 500-599）
-- `health.retry_on_429`: 是否将 429 视为可重试
+- `health.failure_threshold`: 400+ 错误或请求异常/超时次数达到后标记为不健康
+- `health.cooldown_seconds`: 冷却时间（秒，基础冷却，连续熔断按倍数增加）
 - `groups.<name>`: 分组覆盖配置（策略/重试次数/超时）
 - `[[platforms]]`: 上游平台列表
 
@@ -99,10 +97,8 @@ EASYSWITCHER_CONFIG=/path/to/config.toml
 
 策略说明：
 
-- `round_robin`: 轮询
-- `random`: 随机
-- `weighted`: 按权重随机选主，再按优先级/权重排序
-- `failover`: 只按优先级/权重排序
+- `weighted`: 加权轮询（按权重分配请求）
+- `failover`: 主备机制（优先级最小为主，主可用时只走主）
 
 ## Docker
 
@@ -121,7 +117,7 @@ docker-compose up -d --build
 
 ## 示例配置
 
-- `examples/config.single-group.toml`: 单分组 + 轮询
+- `examples/config.single-group.toml`: 单分组 + 加权轮询
 - `examples/config.multi-group.toml`: 多分组 + 不同策略
 
 ## GitHub Actions

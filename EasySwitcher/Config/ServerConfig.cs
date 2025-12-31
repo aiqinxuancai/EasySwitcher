@@ -15,9 +15,9 @@ public sealed class ServerConfig
     /// </summary>
     public string DefaultGroup { get; set; } = "default";
     /// <summary>
-    /// 默认负载均衡策略。
+    /// 默认负载均衡策略（weighted 或 failover）。
     /// </summary>
-    public string Strategy { get; set; } = "round_robin";
+    public string Strategy { get; set; } = "weighted";
     /// <summary>
     /// 上游请求超时（秒）。
     /// </summary>

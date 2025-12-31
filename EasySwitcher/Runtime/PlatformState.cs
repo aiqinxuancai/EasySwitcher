@@ -16,6 +16,7 @@ public sealed class PlatformState
     public Uri BaseUri { get; }
 
     public int FailureCount { get; private set; }
+    public int CircuitBreakCount { get; private set; }
     public DateTimeOffset? UnhealthyUntil { get; private set; }
 
     public void ReportSuccess()
@@ -23,20 +24,27 @@ public sealed class PlatformState
         lock (_lock)
         {
             FailureCount = 0;
+            CircuitBreakCount = 0;
             UnhealthyUntil = null;
         }
     }
 
-    public void ReportFailure(int threshold, TimeSpan cooldown, DateTimeOffset now)
+    public CircuitBreakResult? ReportFailure(int threshold, TimeSpan baseCooldown, DateTimeOffset now)
     {
         lock (_lock)
         {
             FailureCount++;
             if (FailureCount >= threshold)
             {
+                FailureCount = 0;
+                CircuitBreakCount++;
+                var cooldown = CalculateCooldown(baseCooldown, CircuitBreakCount);
                 UnhealthyUntil = now.Add(cooldown);
+                return new CircuitBreakResult(true, cooldown, UnhealthyUntil.Value, CircuitBreakCount);
             }
         }
+
+        return null;
     }
 
     public bool IsHealthy(DateTimeOffset now)
@@ -46,4 +54,20 @@ public sealed class PlatformState
             return UnhealthyUntil is null || UnhealthyUntil <= now;
         }
     }
+
+    private static TimeSpan CalculateCooldown(TimeSpan baseCooldown, int multiplierPower)
+    {
+        var baseSeconds = Math.Max(0, baseCooldown.TotalSeconds);
+        if (baseSeconds <= 0)
+        {
+            return TimeSpan.Zero;
+        }
+
+        var exponent = Math.Max(0, Math.Min(multiplierPower - 1, 10));
+        var multiplier = Math.Pow(2, exponent);
+        var seconds = Math.Min(baseSeconds * multiplier, TimeSpan.MaxValue.TotalSeconds);
+        return TimeSpan.FromSeconds(seconds);
+    }
 }
+
+public sealed record CircuitBreakResult(bool Tripped, TimeSpan Cooldown, DateTimeOffset Until, int TripCount);

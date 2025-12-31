@@ -8,7 +8,7 @@ public sealed class LoadBalancer
 {
     private readonly PlatformRegistry _registry;
     private readonly HealthTracker _health;
-    private readonly ConcurrentDictionary<string, int> _roundRobinIndex = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, WeightedRoundRobinState> _weightedStates = new(StringComparer.OrdinalIgnoreCase);
 
     public LoadBalancer(PlatformRegistry registry, HealthTracker health)
     {
@@ -27,78 +27,87 @@ public sealed class LoadBalancer
         var healthy = platforms.Where(p => _health.IsHealthy(p, now)).ToList();
         if (healthy.Count == 0)
         {
-            healthy = platforms;
+            return Array.Empty<PlatformState>();
         }
 
         var strategy = (groupConfig?.Strategy ?? config.Server.Strategy).Trim().ToLowerInvariant();
         return strategy switch
         {
-            "random" => Shuffle(healthy),
-            "weighted" => WeightedOrder(healthy),
             "failover" => OrderByPriority(healthy),
-            _ => RoundRobin(healthy, group),
+            "weighted" => WeightedRoundRobin(healthy, group),
+            _ => WeightedRoundRobin(healthy, group),
         };
     }
 
-    private IReadOnlyList<PlatformState> RoundRobin(List<PlatformState> platforms, string group)
+    private IReadOnlyList<PlatformState> WeightedRoundRobin(List<PlatformState> platforms, string group)
     {
         if (platforms.Count == 1)
         {
             return platforms;
         }
 
-        var current = _roundRobinIndex.AddOrUpdate(group, 0, (_, value) => unchecked(value + 1));
-        var index = (int)((uint)current % (uint)platforms.Count);
+        var state = _weightedStates.GetOrAdd(group, _ => new WeightedRoundRobinState());
+        var selected = state.Select(platforms);
 
-        var ordered = new List<PlatformState>(platforms.Count);
-        ordered.Add(platforms[index]);
-        for (var i = 1; i < platforms.Count; i++)
-        {
-            ordered.Add(platforms[(index + i) % platforms.Count]);
-        }
-        return ordered;
-    }
-
-    private static IReadOnlyList<PlatformState> Shuffle(List<PlatformState> platforms)
-    {
-        var list = new List<PlatformState>(platforms);
-        for (var i = list.Count - 1; i > 0; i--)
-        {
-            var j = Random.Shared.Next(i + 1);
-            (list[i], list[j]) = (list[j], list[i]);
-        }
-        return list;
-    }
-
-    private static IReadOnlyList<PlatformState> WeightedOrder(List<PlatformState> platforms)
-    {
-        if (platforms.Count == 1)
-        {
-            return platforms;
-        }
-
-        var totalWeight = platforms.Sum(p => Math.Max(1, p.Config.Weight));
-        var target = Random.Shared.Next(1, totalWeight + 1);
-        var running = 0;
-        PlatformState? selected = null;
-        foreach (var platform in platforms)
-        {
-            running += Math.Max(1, platform.Config.Weight);
-            if (target <= running)
-            {
-                selected = platform;
-                break;
-            }
-        }
-
-        selected ??= platforms[0];
         var ordered = new List<PlatformState>(platforms.Count) { selected };
-        ordered.AddRange(platforms.Where(p => p != selected).OrderBy(p => p.Config.Priority).ThenByDescending(p => p.Config.Weight));
+        ordered.AddRange(platforms.Where(p => p != selected)
+            .OrderBy(p => p.Config.Priority)
+            .ThenByDescending(p => p.Config.Weight));
         return ordered;
     }
 
     private static IReadOnlyList<PlatformState> OrderByPriority(List<PlatformState> platforms)
     {
         return platforms.OrderBy(p => p.Config.Priority).ThenByDescending(p => p.Config.Weight).ToList();
+    }
+
+    private sealed class WeightedRoundRobinState
+    {
+        private readonly object _lock = new();
+        private readonly Dictionary<PlatformState, int> _currentWeights = new();
+
+        public PlatformState Select(IReadOnlyList<PlatformState> platforms)
+        {
+            lock (_lock)
+            {
+                var totalWeight = 0;
+                PlatformState? selected = null;
+                var selectedWeight = int.MinValue;
+
+                foreach (var platform in platforms)
+                {
+                    var weight = Math.Max(1, platform.Config.Weight);
+                    totalWeight += weight;
+                    if (!_currentWeights.TryGetValue(platform, out var current))
+                    {
+                        current = 0;
+                    }
+
+                    current += weight;
+                    _currentWeights[platform] = current;
+
+                    if (current > selectedWeight)
+                    {
+                        selectedWeight = current;
+                        selected = platform;
+                    }
+                }
+
+                selected ??= platforms[0];
+                _currentWeights[selected] = selectedWeight - totalWeight;
+
+                if (_currentWeights.Count > platforms.Count)
+                {
+                    var active = new HashSet<PlatformState>(platforms);
+                    var stale = _currentWeights.Keys.Where(key => !active.Contains(key)).ToList();
+                    foreach (var key in stale)
+                    {
+                        _currentWeights.Remove(key);
+                    }
+                }
+
+                return selected;
+            }
+        }
     }
 }

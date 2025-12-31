@@ -3,7 +3,7 @@ namespace EasySwitcher.Config;
 public sealed class GroupConfig
 {
     /// <summary>
-    /// 分组负载均衡策略覆盖。
+    /// 分组负载均衡策略覆盖（weighted 或 failover）。
     /// </summary>
     public string? Strategy { get; set; }
     /// <summary>

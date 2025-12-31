@@ -7,15 +7,23 @@ var configPath = ConfigLoader.ResolvePath(args);
 AppConfig config;
 try
 {
+#if DEBUG
+    configPath = "D:\\git\\EasySwitcher\\EasySwitcher\\bin\\Debug\\net10.0\\config.toml";
+#endif
+
+
     config = ConfigLoader.Load(configPath);
 }
 catch (Exception ex)
 {
-    AnsiConsole.MarkupLine($"[red]Failed to load config:[/] {Markup.Escape(ex.Message)}");
+    AnsiConsole.MarkupLine($"[red]配置加载失败:[/] {Markup.Escape(ex.Message)}");
     return;
 }
 
 var builder = WebApplication.CreateBuilder(args);
+//#if !DEBUG
+builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
+//#endif
 builder.WebHost.UseUrls(config.Server.Listen);
 
 builder.Services.AddSingleton(config);

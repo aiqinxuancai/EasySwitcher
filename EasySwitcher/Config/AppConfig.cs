@@ -43,7 +43,7 @@ public sealed class AppConfig
 
         if (string.IsNullOrWhiteSpace(Server.Strategy))
         {
-            Server.Strategy = "round_robin";
+            Server.Strategy = "weighted";
         }
 
         if (Server.TimeoutSeconds <= 0)
