@@ -22,6 +22,40 @@ EasySwitcher.exe --config config.toml
 
 注：也可用环境变量指定配置文件`EASYSWITCHER_CONFIG=/path/to/config.toml`
 
+### 使用Docker部署
+
+构建并运行：
+
+```bash
+
+docker run -d \
+  --name easyswitcher \
+  --restart unless-stopped \
+  -p 7085:7085 \
+  -e EASYSWITCHER_CONFIG=/app/config.toml \  
+  -v $PWD/config.toml:/app/config.toml \
+  ghcr.io/aiqinxuancai/easyswitcher:latest
+
+```
+
+或使用 docker-compose：
+
+```yml
+version: '3.8'
+
+services:
+  easyswitcher:
+    image: ghcr.io/aiqinxuancai/easyswitcher:latest
+    container_name: easyswitcher
+    restart: unless-stopped
+    ports:
+      - "7085:7085"
+    volumes:
+      - ./config.toml:/app/config.toml:ro
+    environment:
+      - EASYSWITCHER_CONFIG=/app/config.toml
+```
+
 ## 分组路由
 
 通过路径前缀指定分组，格式为：
@@ -65,26 +99,8 @@ http://<host>/{GROUP}/v1/...
 - `weighted`: 加权轮询（按权重分配请求）
 - `failover`: 主备机制（同优先级按权重轮询，优先级更高的节点不可用时才切换）
 
-## Docker
-
-构建并运行：
-
-```bash
-docker build -t easyswitcher .
-docker run --rm -p 7085:7085 -v "$PWD/config.toml:/app/config.toml:ro" -e EASYSWITCHER_CONFIG=/app/config.toml easyswitcher
-```
-
-或使用 docker-compose：
-
-```bash
-docker-compose up -d --build
-```
-
 ## 示例配置
 
 - `examples/config.single-group.toml`: 单分组 + 加权轮询
 - `examples/config.multi-group.toml`: 多分组 + 不同策略
 
-## GitHub Actions
-
-`/.github/workflows/release.yml` 会在推送 `v1.0.0` 这类 tag 时构建多平台发布包，并推送 Docker 镜像到 GHCR。
