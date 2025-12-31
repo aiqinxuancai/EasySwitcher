@@ -41,8 +41,6 @@ docker run -d \
 或使用 docker-compose：
 
 ```yml
-version: '3.8'
-
 services:
   easyswitcher:
     image: ghcr.io/aiqinxuancai/easyswitcher:latest
