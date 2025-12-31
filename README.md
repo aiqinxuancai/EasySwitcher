@@ -6,47 +6,21 @@ EasySwitcher 是一个轻量的 API 转发与负载均衡服务，支持加权�
 
 - 负载均衡策略：`weighted`、`failover`
 - 支持分组配置与覆盖策略（超时、故障转移次数等）
-- 健康检测与冷却时间，400+ 错误触发熔断，连续触发时冷却倍增
+- 健康检测与冷却时间，HTTP错误触发熔断，连续触发时冷却倍增
 - 流式转发（响应实时透传）
 - 控制台日志包含时间、分组、平台、状态码、耗时等
 - 支持 Docker 与 docker-compose 部署
 
 ## 快速开始
 
-1. 修改 `config.toml`（或直接使用 `examples/` 里的示例）。
+1. 修改 `config.toml`（参考 `examples/` 里的示例）。
 2. 本地运行：
 
 ```bash
-dotnet run --project EasySwitcher/EasySwitcher.csproj -- --config config.toml
+EasySwitcher.exe --config config.toml
 ```
 
-3. 发送请求：
-
-```bash
-curl http://localhost:7085/v1/chat/completions \
-  -H "Authorization: Bearer change-me" \
-  -H "Content-Type: application/json" \
-  -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"hello"}]}'
-```
-
-## 流式示例
-
-```bash
-curl -N http://localhost:7085/v1/chat/completions \
-  -H "Authorization: Bearer change-me" \
-  -H "Content-Type: application/json" \
-  -d '{"model":"gpt-4o-mini","stream":true,"messages":[{"role":"user","content":"hello"}]}'
-```
-
-说明：如果请求体长度未知（chunked transfer），EasySwitcher 会直接流式转发到上游，该请求不执行故障转移重试。
-
-## 身份认证
-
-使用：
-
-```bash
-Authorization: Bearer <server.auth_key>
-```
+注：也可用环境变量指定配置文件`EASYSWITCHER_CONFIG=/path/to/config.toml`
 
 ## 分组路由
 
@@ -57,14 +31,6 @@ http://<host>/{GROUP}/v1/...
 ```
 
 当 `{GROUP}` 与已配置分组名称匹配时，将使用该分组，并在转发到上游时移除该路径段。
-
-## 配置文件位置
-
-也可以使用环境变量指定配置：
-
-```bash
-EASYSWITCHER_CONFIG=/path/to/config.toml
-```
 
 ## 配置参考
 
