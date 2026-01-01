@@ -37,6 +37,8 @@ var app = builder.Build();
 
 StartupReporter.Print(config, configPath);
 
+app.MapMethods("/", new[] { "GET", "HEAD" }, () => Results.Text("OK"));
+
 app.Map("/{**catchall}", async (HttpContext context, ProxyService proxy) =>
 {
     await proxy.HandleAsync(context);
