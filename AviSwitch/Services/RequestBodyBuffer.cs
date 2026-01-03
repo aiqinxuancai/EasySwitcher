@@ -1,4 +1,4 @@
-namespace EasySwitcher.Services;
+namespace AviSwitch.Services;
 
 public sealed class BufferedRequestBody
 {

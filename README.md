@@ -1,6 +1,6 @@
-# EasySwitcher
+# AviSwitch
 
-EasySwitcher 是一个轻量的 API 转发与负载均衡服务，支持加权轮询与主备故障转移。它在转发时仅替换 API Key 与 Host，保留其他请求参数，并支持流式响应。
+AviSwitch 是一个轻量的 API 转发与负载均衡服务，支持加权轮询与主备故障转移。它在转发时仅替换 API Key 与 Host，保留其他请求参数，并支持流式响应。
 
 ## 功能特性
 
@@ -17,10 +17,10 @@ EasySwitcher 是一个轻量的 API 转发与负载均衡服务，支持加权�
 2. 本地运行：
 
 ```bash
-EasySwitcher.exe --config config.toml
+AviSwitch.exe --config config.toml
 ```
 
-注：也可用环境变量指定配置文件`EASYSWITCHER_CONFIG=/path/to/config.toml`
+注：也可用环境变量指定配置文件`AVISWITCH_CONFIG=/path/to/config.toml`
 
 ### 使用Docker部署
 
@@ -29,12 +29,12 @@ EasySwitcher.exe --config config.toml
 ```bash
 
 docker run -d \
-  --name easyswitcher \
+  --name aviswitch \
   --restart unless-stopped \
   -p 7085:7085 \
-  -e EASYSWITCHER_CONFIG=/app/config.toml \  
+  -e AVISWITCH_CONFIG=/app/config.toml \  
   -v $PWD/config.toml:/app/config.toml \
-  ghcr.io/aiqinxuancai/easyswitcher:latest
+  ghcr.io/aiqinxuancai/aviswitch:latest
 
 ```
 
@@ -42,16 +42,16 @@ docker run -d \
 
 ```yml
 services:
-  easyswitcher:
-    image: ghcr.io/aiqinxuancai/easyswitcher:latest
-    container_name: easyswitcher
+  aviswitch:
+    image: ghcr.io/aiqinxuancai/aviswitch:latest
+    container_name: aviswitch
     restart: unless-stopped
     ports:
       - "7085:7085"
     volumes:
       - ./config.toml:/app/config.toml:ro
     environment:
-      - EASYSWITCHER_CONFIG=/app/config.toml
+      - AVISWITCH_CONFIG=/app/config.toml
 ```
 
 ## 分组路由

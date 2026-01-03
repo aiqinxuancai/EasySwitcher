@@ -1,13 +1,13 @@
-using EasySwitcher.Config;
+using AviSwitch.Config;
 using Spectre.Console;
 
-namespace EasySwitcher.Services;
+namespace AviSwitch.Services;
 
 public static class StartupReporter
 {
     public static void Print(AppConfig config, string configPath)
     {
-        AnsiConsole.MarkupLine($"[green]EasySwitcher[/] 已加载配置: [blue]{Markup.Escape(configPath)}[/]");
+        AnsiConsole.MarkupLine($"[green]AviSwitch[/] 已加载配置: [blue]{Markup.Escape(configPath)}[/]");
 
         var table = new Table();
         table.AddColumn("名称");

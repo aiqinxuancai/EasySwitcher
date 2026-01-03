@@ -1,6 +1,6 @@
 using Spectre.Console;
 
-namespace EasySwitcher.Services;
+namespace AviSwitch.Services;
 
 public sealed class RequestLogger
 {

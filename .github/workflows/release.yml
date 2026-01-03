@@ -33,13 +33,13 @@ jobs:
           dotnet-version: "10.0.x"
 
       - name: Publish
-        run: dotnet publish EasySwitcher/EasySwitcher.csproj -c Release -r ${{ matrix.rid }} --self-contained true -o publish/${{ matrix.rid }}
+        run: dotnet publish AviSwitch/AviSwitch.csproj -c Release -r ${{ matrix.rid }} --self-contained true -o publish/${{ matrix.rid }}
 
       - name: Archive
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          $zip = "dist/EasySwitcher-${{ matrix.rid }}.zip"
+          $zip = "dist/AviSwitch-${{ matrix.rid }}.zip"
           if (Test-Path $zip) { Remove-Item $zip }
           Compress-Archive -Path publish/${{ matrix.rid }}/* -DestinationPath $zip
 

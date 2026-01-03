@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
-using EasySwitcher.Config;
-using EasySwitcher.Runtime;
+using AviSwitch.Config;
+using AviSwitch.Runtime;
 
-namespace EasySwitcher.Services;
+namespace AviSwitch.Services;
 
 public sealed class LoadBalancer
 {

@@ -1,11 +1,11 @@
 services:
-  easyswitcher:
-    image: ghcr.io/aiqinxuancai/easyswitcher:latest
-    container_name: easyswitcher
+  aviswitch:
+    image: ghcr.io/aiqinxuancai/aviswitch:latest
+    container_name: aviswitch
     restart: unless-stopped
     ports:
       - "7085:7085"
     volumes:
       - ./config.toml:/app/config.toml:ro
     environment:
-      - EASYSWITCHER_CONFIG=/app/config.toml
+      - AVISWITCH_CONFIG=/app/config.toml

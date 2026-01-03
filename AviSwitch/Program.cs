@@ -1,6 +1,6 @@
-using EasySwitcher.Config;
-using EasySwitcher.Runtime;
-using EasySwitcher.Services;
+using AviSwitch.Config;
+using AviSwitch.Runtime;
+using AviSwitch.Services;
 using Spectre.Console;
 
 var configPath = ConfigLoader.ResolvePath(args);

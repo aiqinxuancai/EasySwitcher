@@ -1,4 +1,4 @@
-namespace EasySwitcher.Config;
+namespace AviSwitch.Config;
 
 public sealed class PlatformConfig
 {

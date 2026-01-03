@@ -1,13 +1,13 @@
-using EasySwitcher.Config;
+using AviSwitch.Config;
 using Tomlyn;
 
-namespace EasySwitcher.Services;
+namespace AviSwitch.Services;
 
 public static class ConfigLoader
 {
     public static string ResolvePath(string[] args)
     {
-        var configPath = Environment.GetEnvironmentVariable("EASYSWITCHER_CONFIG");
+        var configPath = Environment.GetEnvironmentVariable("AVISWITCH_CONFIG");
         if (!string.IsNullOrWhiteSpace(configPath))
         {
             return configPath;

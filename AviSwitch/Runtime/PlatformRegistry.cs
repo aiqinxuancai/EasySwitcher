@@ -1,6 +1,6 @@
-using EasySwitcher.Config;
+﻿using AviSwitch.Config;
 
-namespace EasySwitcher.Runtime;
+namespace AviSwitch.Runtime;
 
 public sealed class PlatformRegistry
 {
