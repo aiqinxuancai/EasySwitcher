@@ -58,7 +58,7 @@ public sealed class AppConfig
 
         if (Server.MaxRequestBodyBytes <= 0)
         {
-            Server.MaxRequestBodyBytes = 10 * 1024 * 1024;
+            Server.MaxRequestBodyBytes = 100 * 1024 * 1024;
         }
 
         if (Health.CooldownSeconds <= 0)

@@ -29,5 +29,5 @@ public sealed class ServerConfig
     /// <summary>
     /// 可重试请求体的最大缓存大小（字节）。
     /// </summary>
-    public int MaxRequestBodyBytes { get; set; } = 10 * 1024 * 1024;
+    public int MaxRequestBodyBytes { get; set; } = 100 * 1024 * 1024;
 }

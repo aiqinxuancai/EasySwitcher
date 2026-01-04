@@ -241,7 +241,7 @@ default_group = "default"
 strategy = "weighted"
 timeout_seconds = 600
 max_failover = 2
-max_request_body_bytes = 10485760
+max_request_body_bytes = 104857600
 
 [health]
 cooldown_seconds = 30

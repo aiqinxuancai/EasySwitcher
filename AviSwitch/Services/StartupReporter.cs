@@ -19,13 +19,20 @@ public static class StartupReporter
 
         foreach (var platform in config.Platforms)
         {
+            // 获取该平台所属分组的策略
+            config.Groups.TryGetValue(platform.Group, out var groupConfig);
+            var strategy = (groupConfig?.Strategy ?? config.Server.Strategy).Trim().ToLowerInvariant();
+
+            // 根据策略和优先级决定颜色
+            string color = GetPriorityColor(strategy, platform.Priority);
+
             table.AddRow(
-                Markup.Escape(platform.Name),
-                Markup.Escape(platform.Group),
-                platform.Priority.ToString(),
-                platform.Weight.ToString(),
-                platform.Enabled ? "是" : "否",
-                Markup.Escape(platform.BaseUrl));
+                $"[{color}]{Markup.Escape(platform.Name)}[/]",
+                $"[{color}]{Markup.Escape(platform.Group)}[/]",
+                $"[{color}]{platform.Priority}[/]",
+                $"[{color}]{platform.Weight}[/]",
+                $"[{color}]{(platform.Enabled ? "是" : "否")}[/]",
+                $"[{color}]{Markup.Escape(platform.BaseUrl)}[/]");
         }
 
         AnsiConsole.Write(table);
@@ -91,6 +98,29 @@ public static class StartupReporter
             "weighted" => "加权轮询",
             "failover" => "主备",
             _ => strategy,
+        };
+    }
+
+    /// <summary>
+    /// 根据策略和优先级返回对应的颜色
+    /// 主备模式下，不同优先级使用不同颜色；加权模式下使用默认颜色
+    /// </summary>
+    private static string GetPriorityColor(string strategy, int priority)
+    {
+        // 只有在 failover 策略下才根据优先级区分颜色
+        if (strategy != "failover")
+        {
+            return "white";
+        }
+
+        // failover 模式下，根据优先级返回不同颜色
+        return priority switch
+        {
+            0 => "green",      // 主节点 - 绿色
+            1 => "yellow",     // 备1 - 黄色
+            2 => "orange1",    // 备2 - 橙色
+            3 => "darkorange", // 备3 - 深橙色
+            _ => "red"         // 备4+ - 红色
         };
     }
 }
