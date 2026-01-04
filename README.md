@@ -29,7 +29,7 @@ AviSwitch.exe --config config.toml
 
 ### 使用Docker部署
 
-我更推荐使用Docker部署在你的NAS等设备上使用。
+**我更推荐使用Docker部署在你的NAS等设备上，通过Tailscale等组网工具用内部地址来调用。**
 
 构建并运行：
 
