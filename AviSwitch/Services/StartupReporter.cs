@@ -7,15 +7,8 @@ public static class StartupReporter
 {
     public static void Print(AppConfig config, string configPath)
     {
+        AnsiConsole.Write(new FigletText("AviSwitch").Color(Color.Cyan));
         AnsiConsole.MarkupLine($"[green]AviSwitch[/] 已加载配置: [blue]{Markup.Escape(configPath)}[/]");
-
-        var table = new Table();
-        table.AddColumn("名称");
-        table.AddColumn("分组");
-        table.AddColumn("优先级");
-        table.AddColumn("权重");
-        table.AddColumn("启用");
-        table.AddColumn("上游地址");
 
         // 先计算每个分组的最小优先级（主节点）
         var groupMinPriority = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -31,70 +24,13 @@ public static class StartupReporter
             }
         }
 
-        foreach (var platform in config.Platforms)
+        var groupOrder = BuildGroupOrder(config);
+        foreach (var group in groupOrder)
         {
-            // 获取该平台所属分组的策略
-            config.Groups.TryGetValue(platform.Group, out var groupConfig);
-            var strategy = (groupConfig?.Strategy ?? config.Server.Strategy).Trim().ToLowerInvariant();
+            var groupPlatforms = config.Platforms
+                .Where(p => string.Equals(p.Group, group, StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
-            // 根据策略和优先级决定颜色
-            string color = GetPriorityColor(strategy, platform.Priority);
-
-            // 在 failover 模式下，为最低优先级（主节点）添加标记
-            string priorityText = platform.Priority.ToString();
-            if (strategy == "failover" &&
-                groupMinPriority.TryGetValue(platform.Group, out var minPriority) &&
-                platform.Priority == minPriority)
-            {
-                priorityText = $"{platform.Priority}[主]";
-            }
-
-            table.AddRow(
-                $"[{color}]{Markup.Escape(platform.Name)}[/]",
-                $"[{color}]{Markup.Escape(platform.Group)}[/]",
-                $"[{color}]{Markup.Escape(priorityText)}[/]",
-                $"[{color}]{platform.Weight}[/]",
-                $"[{color}]{(platform.Enabled ? "是" : "否")}[/]",
-                $"[{color}]{Markup.Escape(platform.BaseUrl)}[/]");
-        }
-
-        AnsiConsole.Write(table);
-        AnsiConsole.MarkupLine($"[grey]监听地址:[/] {Markup.Escape(config.Server.Listen)}");
-        AnsiConsole.MarkupLine($"[grey]默认分组:[/] {Markup.Escape(config.Server.DefaultGroup)}");
-        AnsiConsole.MarkupLine($"[grey]默认策略:[/] {Markup.Escape(FormatStrategy(config.Server.Strategy))}  [grey]默认超时:[/] {config.Server.TimeoutSeconds}s  [grey]熔断阈值:[/] {config.Server.MaxFailover}");
-        AnsiConsole.MarkupLine($"[grey]基础冷却:[/] {config.Health.CooldownSeconds}s");
-
-        var groupTable = new Table();
-        groupTable.AddColumn("分组");
-        groupTable.AddColumn("策略");
-        groupTable.AddColumn("熔断阈值");
-        groupTable.AddColumn("超时(秒)");
-        groupTable.AddColumn("平台数");
-
-        var groupNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        if (!string.IsNullOrWhiteSpace(config.Server.DefaultGroup))
-        {
-            groupNames.Add(config.Server.DefaultGroup);
-        }
-
-        foreach (var group in config.Groups.Keys)
-        {
-            if (!string.IsNullOrWhiteSpace(group))
-            {
-                groupNames.Add(group);
-            }
-        }
-
-        foreach (var platform in config.Platforms)
-        {
-            if (!string.IsNullOrWhiteSpace(platform.Group))
-            {
-                groupNames.Add(platform.Group);
-            }
-        }
-
-        foreach (var group in groupNames.OrderBy(name => name, StringComparer.OrdinalIgnoreCase))
-        {
             config.Groups.TryGetValue(group, out var groupConfig);
             var strategy = (groupConfig?.Strategy ?? config.Server.Strategy).Trim();
             var maxFailover = groupConfig?.MaxFailover ?? config.Server.MaxFailover;
@@ -102,15 +38,58 @@ public static class StartupReporter
             var platformCount = config.Platforms.Count(p => p.Enabled &&
                                                            string.Equals(p.Group, group, StringComparison.OrdinalIgnoreCase));
 
-            groupTable.AddRow(
-                Markup.Escape(group),
-                Markup.Escape(FormatStrategy(strategy)),
-                maxFailover.ToString(),
-                timeout.ToString(),
-                platformCount.ToString());
+            AnsiConsole.MarkupLine(
+                $"[yellow]分组:[/] {Markup.Escape(group)}  " +
+                $"[grey]策略:[/] {Markup.Escape(FormatStrategy(strategy))}  " +
+                $"[grey]熔断阈值:[/] {maxFailover}  " +
+                $"[grey]超时:[/] {timeout}s  " +
+                $"[grey]平台数:[/] {platformCount}");
+
+            if (groupPlatforms.Count == 0)
+            {
+                AnsiConsole.MarkupLine("[grey]无平台[/]");
+                continue;
+            }
+
+            var table = new Table();
+            table.AddColumn("名称");
+            table.AddColumn("优先级");
+            table.AddColumn("权重");
+            table.AddColumn("启用");
+            table.AddColumn("上游地址");
+
+            foreach (var platform in groupPlatforms)
+            {
+                // 获取该平台所属分组的策略
+                var platformStrategy = strategy.Trim().ToLowerInvariant();
+
+                // 根据策略和优先级决定颜色
+                string color = GetPriorityColor(platformStrategy, platform.Priority);
+
+                // 在 failover 模式下，为最低优先级（主节点）添加标记
+                string priorityText = platform.Priority.ToString();
+                if (platformStrategy == "failover" &&
+                    groupMinPriority.TryGetValue(platform.Group, out var minPriority) &&
+                    platform.Priority == minPriority)
+                {
+                    priorityText = $"{platform.Priority}[主]";
+                }
+
+                table.AddRow(
+                    $"[{color}]{Markup.Escape(platform.Name)}[/]",
+                    $"[{color}]{Markup.Escape(priorityText)}[/]",
+                    $"[{color}]{platform.Weight}[/]",
+                    $"[{color}]{(platform.Enabled ? "是" : "否")}[/]",
+                    $"[{color}]{Markup.Escape(platform.BaseUrl)}[/]");
+            }
+
+            AnsiConsole.Write(table);
         }
 
-        AnsiConsole.Write(groupTable);
+        AnsiConsole.MarkupLine($"[grey]监听地址:[/] {Markup.Escape(config.Server.Listen)}");
+        AnsiConsole.MarkupLine($"[grey]默认分组:[/] {Markup.Escape(config.Server.DefaultGroup)}");
+        AnsiConsole.MarkupLine($"[grey]默认策略:[/] {Markup.Escape(FormatStrategy(config.Server.Strategy))}  [grey]默认超时:[/] {config.Server.TimeoutSeconds}s  [grey]熔断阈值:[/] {config.Server.MaxFailover}");
+        AnsiConsole.MarkupLine($"[grey]基础冷却:[/] {config.Health.CooldownSeconds}s");
     }
 
     private static string FormatStrategy(string strategy)
@@ -145,5 +124,38 @@ public static class StartupReporter
             3 => "darkorange", // 备3 - 深橙色
             _ => "red"         // 备4+ - 红色
         };
+    }
+
+    private static List<string> BuildGroupOrder(AppConfig config)
+    {
+        var ordered = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        void AddGroup(string? name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return;
+            }
+
+            if (seen.Add(name))
+            {
+                ordered.Add(name);
+            }
+        }
+
+        AddGroup(config.Server.DefaultGroup);
+
+        foreach (var platform in config.Platforms)
+        {
+            AddGroup(platform.Group);
+        }
+
+        foreach (var group in config.Groups.Keys)
+        {
+            AddGroup(group);
+        }
+
+        return ordered;
     }
 }
