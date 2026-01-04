@@ -25,8 +25,15 @@ public static class StartupReporter
         }
 
         var groupOrder = BuildGroupOrder(config);
-        foreach (var group in groupOrder)
+        if (groupOrder.Count > 0)
         {
+            var rule = new Rule().RuleStyle("grey");
+            AnsiConsole.Write(rule);
+        }
+
+        for (var index = 0; index < groupOrder.Count; index++)
+        {
+            var group = groupOrder[index];
             var groupPlatforms = config.Platforms
                 .Where(p => string.Equals(p.Group, group, StringComparison.OrdinalIgnoreCase))
                 .ToList();
@@ -48,6 +55,8 @@ public static class StartupReporter
             if (groupPlatforms.Count == 0)
             {
                 AnsiConsole.MarkupLine("[grey]无平台[/]");
+                var rule = new Rule().RuleStyle("grey");
+                AnsiConsole.Write(rule);
                 continue;
             }
 
@@ -84,6 +93,8 @@ public static class StartupReporter
             }
 
             AnsiConsole.Write(table);
+            var groupRule = new Rule().RuleStyle("grey");
+            AnsiConsole.Write(groupRule);
         }
 
         AnsiConsole.MarkupLine($"[grey]监听地址:[/] {Markup.Escape(config.Server.Listen)}");
