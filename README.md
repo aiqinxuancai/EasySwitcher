@@ -4,7 +4,8 @@ AviSwitch 是一个轻量的 API 转发与负载均衡服务，支持加权轮�
 
 特别适合各个Claude、Codex分发平台经常爆炸的问题，让你可以在"鸡鸭鹅"之间API全自动切换重试，避免各平台爆炸后用cc-switch配置切换文件后要退出重开工具恢复会话的尴尬场景，保证一直蹬着不断（尽量）。
 
-<img width="1115" height="628" alt="image" src="https://github.com/user-attachments/assets/21b1c4ce-d8fa-420d-8ef5-138f7df33ad3" />
+<img width="1024" height="913" alt="image" src="https://github.com/user-attachments/assets/43851fe9-ce44-4b04-a7ad-962a165d0ecd" />
+
 
 
 ## 功能特性
@@ -65,7 +66,7 @@ services:
 
 ## 配置到Codex、Claude、Gemini
 
-Codex例子，只需将接口URL指定到AviSwitch，比如http://127.0.0.1:7085/
+Codex配置例子，只需将接口URL指定到AviSwitch，比如http://127.0.0.1:7085/
 ```
 model_provider = "aviswitch"
 model = "gpt-5.2-codex"
@@ -78,6 +79,21 @@ name = "AviSwitch"
 base_url = "http://100.100.1.7:7085/"
 wire_api = "responses"
 requires_openai_auth = true
+```
+
+Claude配置同理，只需改ANTHROPIC_BASE_URL即可，我这里是用了一个claude的分组
+```json
+{
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "your_api_key_here",
+    "ANTHROPIC_BASE_URL": "http://127.0.0.1:7085/claude",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+  },
+  "permissions": {
+    "allow": [],
+    "deny": []
+  }
+}
 ```
 
 **分组路由**
@@ -231,41 +247,27 @@ enabled = true
 ```toml
 [server]
 listen = "http://0.0.0.0:7085"
-auth_key = "change-me"
+auth_key = ""
 default_group = "default"
 strategy = "weighted"
 timeout_seconds = 600
-max_failover = 2
-max_request_body_bytes = 104857600
+max_failover = 1
+max_request_body_bytes = 10485760
 
 [health]
-cooldown_seconds = 30
+cooldown_seconds = 60
 
 [groups.default]
-strategy = "weighted"
-max_failover = 2
+strategy = "failover"
+max_failover = 1
 timeout_seconds = 600
 
-[groups.vip]
-strategy = "failover"
-max_failover = 3
-timeout_seconds = 180
+# 下面是默认的CodeX分组，使用 http://127.0.0.1:7085/ 或 http://127.0.0.1:7085/default 作为CodeX的配置入口
 
 [[platforms]]
-name = "88code"
+name = "88"
 base_url = "https://www.88code.ai/openai/v1"
-api_key = ""
-group = "default"
-weight = 2
-priority = 0
-key_header = "Authorization"
-key_prefix = "Bearer "
-enabled = true
-
-[[platforms]]
-name = "鸭Duckcoding"
-base_url = "https://jp.duckcoding.com/v1"
-api_key = ""
+api_key = "你的平台Key"
 group = "default"
 weight = 1
 priority = 0
@@ -276,10 +278,10 @@ enabled = true
 [[platforms]]
 name = "鹅cubence"
 base_url = "https://api.cubence.com/v1"
-api_key = ""
-group = "vip"
+api_key = "你的平台Key"
+group = "default"
 weight = 1
-priority = 1
+priority = 0
 key_header = "Authorization"
 key_prefix = "Bearer "
 enabled = true
@@ -287,13 +289,71 @@ enabled = true
 [[platforms]]
 name = "Privnode"
 base_url = "https://privnode.com/v1"
-api_key = ""
-group = "vip"
+api_key = "你的平台Key"
+group = "default"
 weight = 1
-priority = 2
+priority = 1
 key_header = "Authorization"
 key_prefix = "Bearer "
 enabled = true
+
+[[platforms]]
+name = "Duckcoding"
+base_url = "https://jp.duckcoding.com/v1"
+api_key = "你的平台Key"
+group = "default"
+weight = 1
+priority = 1
+key_header = "Authorization"
+key_prefix = "Bearer "
+enabled = true
+
+# 下面是claude分组，使用 http://127.0.0.1:7085/claude 作为Claude Code的配置入口
+
+[[platforms]]
+name = "88"
+base_url = "https://www.88code.ai/api/"
+api_key = "你的平台Key"
+group = "claude"
+weight = 1
+priority = 0
+key_header = "x-api-key"
+key_prefix = ""
+enabled = true
+
+[[platforms]]
+name = "鹅cubence"
+base_url = "https://api.cubence.com/v1"
+api_key = "你的平台Key"
+group = "claude"
+weight = 1
+priority = 0
+key_header = "x-api-key"
+key_prefix = ""
+enabled = true
+
+[[platforms]]
+name = "Privnode"
+base_url = "https://privnode.com/v1"
+api_key = "你的平台Key"
+group = "claude"
+weight = 1
+priority = 1
+key_header = "x-api-key"
+key_prefix = ""
+enabled = true
+
+[[platforms]]
+name = "Duckcoding"
+base_url = "https://jp.duckcoding.com/v1"
+api_key = "你的平台Key"
+group = "claude"
+weight = 1
+priority = 1
+key_header = "x-api-key"
+key_prefix = ""
+enabled = true
+
 ```
 
 ### 平台认证填写示例
