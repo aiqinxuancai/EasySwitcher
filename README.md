@@ -200,7 +200,7 @@ key_prefix = "Bearer "
 enabled = true
 ```
 
-### 多分组（基于单分组数据重写）
+### 多分组
 
 ```toml
 [server]
