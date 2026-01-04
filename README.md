@@ -247,41 +247,26 @@ enabled = true
 ```toml
 [server]
 listen = "http://0.0.0.0:7085"
-auth_key = "change-me"
+auth_key = "4pGNmJAjEBM8EKh3evxcHWv2pZwig8gr"
 default_group = "default"
 strategy = "weighted"
 timeout_seconds = 600
-max_failover = 2
-max_request_body_bytes = 104857600
+max_failover = 1
+max_request_body_bytes = 10485760
 
 [health]
-cooldown_seconds = 30
+cooldown_seconds = 60
 
 [groups.default]
-strategy = "weighted"
-max_failover = 2
+strategy = "failover"
+max_failover = 1
 timeout_seconds = 600
 
-[groups.vip]
-strategy = "failover"
-max_failover = 3
-timeout_seconds = 180
 
 [[platforms]]
-name = "88code"
+name = "88"
 base_url = "https://www.88code.ai/openai/v1"
-api_key = ""
-group = "default"
-weight = 2
-priority = 0
-key_header = "Authorization"
-key_prefix = "Bearer "
-enabled = true
-
-[[platforms]]
-name = "鸭Duckcoding"
-base_url = "https://jp.duckcoding.com/v1"
-api_key = ""
+api_key = "你的平台Key"
 group = "default"
 weight = 1
 priority = 0
@@ -292,10 +277,10 @@ enabled = true
 [[platforms]]
 name = "鹅cubence"
 base_url = "https://api.cubence.com/v1"
-api_key = ""
-group = "vip"
+api_key = "你的平台Key"
+group = "default"
 weight = 1
-priority = 1
+priority = 0
 key_header = "Authorization"
 key_prefix = "Bearer "
 enabled = true
@@ -303,13 +288,71 @@ enabled = true
 [[platforms]]
 name = "Privnode"
 base_url = "https://privnode.com/v1"
-api_key = ""
-group = "vip"
+api_key = "你的平台Key"
+group = "default"
 weight = 1
-priority = 2
+priority = 1
 key_header = "Authorization"
 key_prefix = "Bearer "
 enabled = true
+
+[[platforms]]
+name = "Duckcoding"
+base_url = "https://jp.duckcoding.com/v1"
+api_key = "你的平台Key"
+group = "default"
+weight = 1
+priority = 1
+key_header = "Authorization"
+key_prefix = "Bearer "
+enabled = true
+
+# 下面是claude分组，使用 http://127.0.0.1:7085/claude 作为Claude Code的配置入口
+
+[[platforms]]
+name = "88"
+base_url = "https://www.88code.ai/api/"
+api_key = "你的平台Key"
+group = "claude"
+weight = 1
+priority = 0
+key_header = "x-api-key"
+key_prefix = ""
+enabled = true
+
+[[platforms]]
+name = "鹅cubence"
+base_url = "https://api.cubence.com/v1"
+api_key = "你的平台Key"
+group = "claude"
+weight = 1
+priority = 0
+key_header = "x-api-key"
+key_prefix = ""
+enabled = true
+
+[[platforms]]
+name = "Privnode"
+base_url = "https://privnode.com/v1"
+api_key = "你的平台Key"
+group = "claude"
+weight = 1
+priority = 1
+key_header = "x-api-key"
+key_prefix = ""
+enabled = true
+
+[[platforms]]
+name = "Duckcoding"
+base_url = "https://jp.duckcoding.com/v1"
+api_key = "你的平台Key"
+group = "claude"
+weight = 1
+priority = 1
+key_header = "x-api-key"
+key_prefix = ""
+enabled = true
+
 ```
 
 ### 平台认证填写示例
