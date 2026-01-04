@@ -22,6 +22,14 @@ public sealed class RequestLogger
         AnsiConsole.MarkupLine(message);
     }
 
+    public void LogDebug(ProxyDebugLogEntry entry)
+    {
+        var attemptText = entry.AttemptLimit > 1 ? $" (try {entry.Attempt}/{entry.AttemptLimit})" : string.Empty;
+        var message = $"[grey]{entry.Timestamp:O}[/] [yellow]DEBUG[/] [blue]{Markup.Escape(entry.Group)}[/] [cyan]{Markup.Escape(entry.Platform)}[/] " +
+                      $"{Markup.Escape(entry.Method)} -> {Markup.Escape(entry.TargetUri)}{attemptText}";
+        AnsiConsole.MarkupLine(message);
+    }
+
     public void LogCircuitBreak(CircuitBreakLogEntry entry)
     {
         var cooldownSeconds = Math.Max(0, (int)Math.Round(entry.Cooldown.TotalSeconds));
@@ -45,6 +53,15 @@ public sealed record ProxyLogEntry(
     int Attempt,
     int AttemptLimit,
     string? Error);
+
+public sealed record ProxyDebugLogEntry(
+    DateTimeOffset Timestamp,
+    string Group,
+    string Platform,
+    string Method,
+    string TargetUri,
+    int Attempt,
+    int AttemptLimit);
 
 public sealed record CircuitBreakLogEntry(
     DateTimeOffset Timestamp,

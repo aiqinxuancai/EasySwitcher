@@ -95,10 +95,11 @@ public sealed class ProxyService
             var platform = candidates[attempt];
             var attemptStopwatch = Stopwatch.StartNew();
             var statusCode = StatusCodes.Status502BadGateway;
+            var targetUri = BuildTargetUri(platform.BaseUri, forwardPath, context.Request.QueryString);
 
             try
             {
-                using var requestMessage = BuildRequestMessage(context, platform, bufferedBody, forwardPath);
+                using var requestMessage = BuildRequestMessage(context, platform, bufferedBody, targetUri);
                 using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
                 using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted, timeoutCts.Token);
 
@@ -108,7 +109,7 @@ public sealed class ProxyService
                 if (_health.IsRetryableStatusCode(statusCode) && attempt + 1 < attemptLimit && !context.Response.HasStarted)
                 {
                     ReportFailure(platform, group, $"状态码 {statusCode}", failureThreshold);
-                    LogAttempt(context, platform, group, statusCode, attemptStopwatch, attempt + 1, attemptLimit, false, "可重试状态码");
+                    LogAttempt(context, platform, group, statusCode, attemptStopwatch, targetUri, attempt + 1, attemptLimit, false, "可重试状态码");
                     continue;
                 }
 
@@ -127,7 +128,7 @@ public sealed class ProxyService
                     ReportFailure(platform, group, $"状态码 {statusCode}", failureThreshold);
                 }
 
-                LogAttempt(context, platform, group, statusCode, attemptStopwatch, attempt + 1, attemptLimit, success, null);
+                LogAttempt(context, platform, group, statusCode, attemptStopwatch, targetUri, attempt + 1, attemptLimit, success, null);
                 return;
             }
             catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
@@ -138,12 +139,12 @@ public sealed class ProxyService
             {
                 statusCode = StatusCodes.Status504GatewayTimeout;
                 ReportFailure(platform, group, "超时", failureThreshold);
-                LogAttempt(context, platform, group, statusCode, attemptStopwatch, attempt + 1, attemptLimit, false, "超时");
+                LogAttempt(context, platform, group, statusCode, attemptStopwatch, targetUri, attempt + 1, attemptLimit, false, "超时");
             }
             catch (Exception ex)
             {
                 ReportFailure(platform, group, "异常", failureThreshold);
-                LogAttempt(context, platform, group, statusCode, attemptStopwatch, attempt + 1, attemptLimit, false, ex.Message);
+                LogAttempt(context, platform, group, statusCode, attemptStopwatch, targetUri, attempt + 1, attemptLimit, false, ex.Message);
             }
 
             if (context.Response.HasStarted)
@@ -205,9 +206,8 @@ public sealed class ProxyService
         return (_config.Server.DefaultGroup, context.Request.Path);
     }
 
-    private HttpRequestMessage BuildRequestMessage(HttpContext context, PlatformState platform, BufferedRequestBody bufferedBody, PathString forwardPath)
+    private HttpRequestMessage BuildRequestMessage(HttpContext context, PlatformState platform, BufferedRequestBody bufferedBody, Uri targetUri)
     {
-        var targetUri = BuildTargetUri(platform.BaseUri, forwardPath, context.Request.QueryString);
         var requestMessage = new HttpRequestMessage(new HttpMethod(context.Request.Method), targetUri);
 
         var hasBody = bufferedBody.Body is { Length: > 0 } ||
@@ -242,6 +242,19 @@ public sealed class ProxyService
             requestPath = "/" + requestPath;
         }
 
+        if (TryGetTrailingVersionSegment(basePath, out var versionSegment))
+        {
+            var versionPrefix = "/" + versionSegment;
+            if (requestPath.Equals(versionPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                requestPath = "/";
+            }
+            else if (requestPath.StartsWith(versionPrefix + "/", StringComparison.OrdinalIgnoreCase))
+            {
+                requestPath = requestPath.Substring(versionPrefix.Length);
+            }
+        }
+
         var combinedPath = string.IsNullOrEmpty(basePath) || basePath == "/"
             ? requestPath
             : $"{basePath}{requestPath}";
@@ -252,6 +265,38 @@ public sealed class ProxyService
             Query = query.HasValue ? query.Value!.TrimStart('?') : string.Empty,
         };
         return builder.Uri;
+    }
+
+    private static bool TryGetTrailingVersionSegment(string basePath, out string segment)
+    {
+        segment = string.Empty;
+        if (string.IsNullOrEmpty(basePath))
+        {
+            return false;
+        }
+
+        var lastSlash = basePath.LastIndexOf('/');
+        var raw = lastSlash >= 0 ? basePath[(lastSlash + 1)..] : basePath;
+        if (raw.Length < 2)
+        {
+            return false;
+        }
+
+        if (raw[0] != 'v' && raw[0] != 'V')
+        {
+            return false;
+        }
+
+        for (var i = 1; i < raw.Length; i++)
+        {
+            if (!char.IsDigit(raw[i]))
+            {
+                return false;
+            }
+        }
+
+        segment = raw;
+        return true;
     }
 
     private static HashSet<string> BuildKnownGroups(AppConfig config)
@@ -347,11 +392,25 @@ public sealed class ProxyService
         context.Response.Headers.Remove("transfer-encoding");
     }
 
-    private void LogAttempt(HttpContext context, PlatformState platform, string group, int statusCode, Stopwatch stopwatch, int attempt, int attemptLimit, bool success, string? error)
+    private void LogAttempt(HttpContext context, PlatformState platform, string group, int statusCode, Stopwatch stopwatch, Uri targetUri, int attempt, int attemptLimit, bool success, string? error)
     {
         stopwatch.Stop();
+        var timestamp = DateTimeOffset.UtcNow;
+        if (_config.Server.DebugLog)
+        {
+            var debugEntry = new ProxyDebugLogEntry(
+                timestamp,
+                group,
+                platform.Config.Name,
+                context.Request.Method,
+                targetUri.ToString(),
+                attempt,
+                attemptLimit);
+            _logger.LogDebug(debugEntry);
+        }
+
         var entry = new ProxyLogEntry(
-            DateTimeOffset.UtcNow,
+            timestamp,
             group,
             platform.Config.Name,
             context.Request.Method,
