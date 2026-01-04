@@ -66,7 +66,7 @@ services:
 
 ## 配置到Codex、Claude、Gemini
 
-Codex例子，只需将接口URL指定到AviSwitch，比如http://127.0.0.1:7085/
+Codex配置例子，只需将接口URL指定到AviSwitch，比如http://127.0.0.1:7085/
 ```
 model_provider = "aviswitch"
 model = "gpt-5.2-codex"
@@ -79,6 +79,21 @@ name = "AviSwitch"
 base_url = "http://100.100.1.7:7085/"
 wire_api = "responses"
 requires_openai_auth = true
+```
+
+Claude配置同理，只需改ANTHROPIC_BASE_URL即可，我这里是用了一个claude的分组
+```json
+{
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "your_api_key_here",
+    "ANTHROPIC_BASE_URL": "http://127.0.0.1:7085/claude",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+  },
+  "permissions": {
+    "allow": [],
+    "deny": []
+  }
+}
 ```
 
 **分组路由**
