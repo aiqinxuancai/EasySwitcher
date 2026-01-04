@@ -1,6 +1,11 @@
 # AviSwitch
 
-AviSwitch 是一个轻量的 API 转发与负载均衡服务，支持加权轮询与主备故障转移。它在转发时仅替换 API Key 与 Host，保留其他请求参数，并支持流式响应。
+AviSwitch 是一个轻量的 API 转发与负载均衡服务，支持加权轮询与主备故障转移。它在转发时仅替换 API Key 与 Host，保留其他请求参数，并支持流式响应，
+
+特别适合各个Claude、Codex分发平台经常爆炸的问题，让你可以在"鸡鸭鹅"之间API全自动切换重试，避免各平台爆炸后用cc-switch配置切换文件后要退出重开工具恢复会话的尴尬场景，保证一直蹬着不断（尽量）。
+
+<img width="1115" height="628" alt="image" src="https://github.com/user-attachments/assets/21b1c4ce-d8fa-420d-8ef5-138f7df33ad3" />
+
 
 ## 功能特性
 
@@ -23,6 +28,8 @@ AviSwitch.exe --config config.toml
 注：也可用环境变量指定配置文件`AVISWITCH_CONFIG=/path/to/config.toml`
 
 ### 使用Docker部署
+
+**我更推荐使用Docker部署在你的NAS等设备上，通过Tailscale等组网工具用内部地址来调用。**
 
 构建并运行：
 
@@ -54,12 +61,29 @@ services:
       - AVISWITCH_CONFIG=/app/config.toml
 ```
 
+## 配置到Codex、Claude、Gemini
+
+Codex例子，只需将接口URL指定到AviSwitch，比如http://127.0.0.1:7085/
+```
+model_provider = "aviswitch"
+model = "gpt-5.2-codex"
+model_reasoning_effort = "high"
+disable_response_storage = true
+sandbox_mode="danger-full-access"
+
+[model_providers.aviswitch]
+name = "AviSwitch"
+base_url = "http://100.100.1.7:7085/"
+wire_api = "responses"
+requires_openai_auth = true
+```
+
 ## 分组路由
 
 通过路径前缀指定分组，格式为：
 
 ```
-http://<host>/{GROUP}/v1/...
+http://<host>/{GROUP}/
 ```
 
 当 `{GROUP}` 与已配置分组名称匹配时，将使用该分组，并在转发到上游时移除该路径段。
