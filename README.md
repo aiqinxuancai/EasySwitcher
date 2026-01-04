@@ -2,7 +2,7 @@
 
 AviSwitch 是一个轻量的 API 转发与负载均衡服务，支持加权轮询与主备故障转移。它在转发时仅替换 API Key 与 Host，保留其他请求参数，并支持流式响应，
 
-特别适合各个Claude、Codex分发平台经常爆炸的问题，让你可以在"鸡鸭鹅"之间API全自动切换重试，避免各平台爆炸后，使用cc-switch配置切换文件后要退出重开工具恢复会话的尴尬场景，保证一直蹬着不断（尽量）。
+特别适合各个Claude、Codex分发平台经常爆炸的问题，让你可以在"鸡鸭鹅"之间API全自动切换重试，避免各平台爆炸后用cc-switch配置切换文件后要退出重开工具恢复会话的尴尬场景，保证一直蹬着不断（尽量）。
 
 <img width="1115" height="628" alt="image" src="https://github.com/user-attachments/assets/21b1c4ce-d8fa-420d-8ef5-138f7df33ad3" />
 
