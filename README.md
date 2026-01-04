@@ -15,6 +15,8 @@ AviSwitch 是一个轻量的 API 转发与负载均衡服务，支持加权轮�
 - 流式转发（响应实时透传）
 - 控制台日志包含时间、分组、平台、状态码、耗时等
 - 支持 Docker 与 docker-compose 部署
+<img width="2528" height="1696" alt="image" src="https://github.com/user-attachments/assets/1a3e95b9-ea37-429e-9a98-7a07fc52e5f5" />
+
 
 ## 快速开始
 
