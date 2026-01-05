@@ -344,9 +344,53 @@ public sealed class ProxyService
         return (config.KeyHeader ?? "Authorization", config.KeyPrefix ?? string.Empty);
     }
 
+    private static bool ShouldPassThroughKey(PlatformConfig config)
+    {
+        return string.IsNullOrWhiteSpace(config.KeyType) &&
+               string.IsNullOrWhiteSpace(config.KeyHeader) &&
+               config.KeyPrefix is null &&
+               string.IsNullOrWhiteSpace(config.ApiKey);
+    }
+
+    private static string? ResolvePassThroughHeader(HttpContext context, PlatformConfig config)
+    {
+        if (!ShouldPassThroughKey(config))
+        {
+            return null;
+        }
+
+        if (context.Request.Headers.TryGetValue("Authorization", out var authValue) && authValue.Count > 0)
+        {
+            return "Authorization";
+        }
+
+        if (context.Request.Headers.ContainsKey("x-api-key"))
+        {
+            return "x-api-key";
+        }
+
+        if (context.Request.Headers.ContainsKey("api-key"))
+        {
+            return "api-key";
+        }
+
+        if (context.Request.Headers.ContainsKey("x-goog-api-key"))
+        {
+            return "x-goog-api-key";
+        }
+
+        if (context.Request.Headers.ContainsKey("x-google-api-key"))
+        {
+            return "x-google-api-key";
+        }
+
+        return null;
+    }
+
     private static void CopyRequestHeaders(HttpContext context, PlatformState platform, HttpRequestMessage requestMessage)
     {
         var (keyHeader, _) = ResolveKeySpec(platform.Config);
+        var passThroughHeader = ResolvePassThroughHeader(context, platform.Config);
 
         foreach (var header in context.Request.Headers)
         {
@@ -365,7 +409,8 @@ public sealed class ProxyService
                 continue;
             }
 
-            if (DefaultKeyHeaders.Contains(header.Key) || string.Equals(header.Key, keyHeader, StringComparison.OrdinalIgnoreCase))
+            if ((DefaultKeyHeaders.Contains(header.Key) || string.Equals(header.Key, keyHeader, StringComparison.OrdinalIgnoreCase)) &&
+                (passThroughHeader is null || !string.Equals(header.Key, passThroughHeader, StringComparison.OrdinalIgnoreCase)))
             {
                 continue;
             }

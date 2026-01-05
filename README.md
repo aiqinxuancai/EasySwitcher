@@ -131,9 +131,10 @@ http://<host>/{GROUP}/
 - `group`: 分组名
 - `weight`: 权重（越大越容易被选中）
 - `priority`: 优先级（越小越优先，故障转移使用）
-- `key_type`: ???????`openai`/`claude`/`gemini`??????? `key_header`/`key_prefix`
-- `key_header`: ?? API Key ???????? `key_type` ????
-- `key_prefix`: API Key ???? `Bearer `???? `key_type` ????
+- `key_type`: 预定义类型，支持`openai`/`claude`/`gemini`，会自动设置 `key_header`/`key_prefix`
+- `key_header`: 自定义 API Key 的请求头名称，在未设置 `key_type` 时使用
+- `key_prefix`: API Key 前缀（如 `Bearer `），在未设置 `key_type` 时使用
+- `key_type`与`key_header`/`key_prefix` 两种方式二选一即可
 - `enabled`: 是否启用
 
 策略说明：

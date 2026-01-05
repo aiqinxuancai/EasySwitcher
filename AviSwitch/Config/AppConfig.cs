@@ -94,7 +94,10 @@ public sealed class AppConfig
                 platform.Weight = 1;
             }
 
-            if (!string.IsNullOrWhiteSpace(platform.KeyType))
+            var hasKeyType = !string.IsNullOrWhiteSpace(platform.KeyType);
+            var hasApiKey = !string.IsNullOrWhiteSpace(platform.ApiKey);
+
+            if (hasKeyType)
             {
                 var normalizedKeyType = platform.KeyType.Trim().ToLowerInvariant();
                 if (normalizedKeyType is not ("openai" or "claude" or "gemini"))
@@ -105,9 +108,9 @@ public sealed class AppConfig
                 platform.KeyType = normalizedKeyType;
             }
 
-            if (string.IsNullOrWhiteSpace(platform.KeyType))
+            if (!hasKeyType && hasApiKey)
             {
-                if (platform.KeyHeader is null)
+                if (string.IsNullOrWhiteSpace(platform.KeyHeader))
                 {
                     platform.KeyHeader = "Authorization";
                 }
