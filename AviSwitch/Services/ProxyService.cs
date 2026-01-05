@@ -25,6 +25,7 @@ public sealed class ProxyService
         "X-Api-Key",
         "Api-Key",
         "X-Google-Api-Key",
+        "X-Goog-Api-Key",
     };
 
     private readonly AppConfig _config;
@@ -326,9 +327,26 @@ public sealed class ProxyService
         return groups;
     }
 
+    private static (string Header, string Prefix) ResolveKeySpec(PlatformConfig config)
+    {
+        if (!string.IsNullOrWhiteSpace(config.KeyType))
+        {
+            var normalized = config.KeyType.Trim().ToLowerInvariant();
+            return normalized switch
+            {
+                "openai" => ("Authorization", "Bearer "),
+                "claude" => ("x-api-key", string.Empty),
+                "gemini" => ("x-goog-api-key", string.Empty),
+                _ => (config.KeyHeader ?? "Authorization", config.KeyPrefix ?? string.Empty),
+            };
+        }
+
+        return (config.KeyHeader ?? "Authorization", config.KeyPrefix ?? string.Empty);
+    }
+
     private static void CopyRequestHeaders(HttpContext context, PlatformState platform, HttpRequestMessage requestMessage)
     {
-        var keyHeader = platform.Config.KeyHeader ?? "Authorization";
+        var (keyHeader, _) = ResolveKeySpec(platform.Config);
 
         foreach (var header in context.Request.Headers)
         {
@@ -367,8 +385,7 @@ public sealed class ProxyService
             return;
         }
 
-        var header = platform.Config.KeyHeader ?? "Authorization";
-        var prefix = platform.Config.KeyPrefix ?? string.Empty;
+        var (header, prefix) = ResolveKeySpec(platform.Config);
         var value = $"{prefix}{platform.Config.ApiKey}";
 
         if (!requestMessage.Headers.TryAddWithoutValidation(header, value) && requestMessage.Content is not null)

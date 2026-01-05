@@ -94,14 +94,28 @@ public sealed class AppConfig
                 platform.Weight = 1;
             }
 
-            if (platform.KeyHeader is null)
+            if (!string.IsNullOrWhiteSpace(platform.KeyType))
             {
-                platform.KeyHeader = "Authorization";
+                var normalizedKeyType = platform.KeyType.Trim().ToLowerInvariant();
+                if (normalizedKeyType is not ("openai" or "claude" or "gemini"))
+                {
+                    throw new InvalidOperationException($"platforms[{platformIndex}].key_type must be one of: openai, claude, gemini.");
+                }
+
+                platform.KeyType = normalizedKeyType;
             }
 
-            if (platform.KeyPrefix is null)
+            if (string.IsNullOrWhiteSpace(platform.KeyType))
             {
-                platform.KeyPrefix = "Bearer ";
+                if (platform.KeyHeader is null)
+                {
+                    platform.KeyHeader = "Authorization";
+                }
+
+                if (platform.KeyPrefix is null)
+                {
+                    platform.KeyPrefix = "Bearer ";
+                }
             }
 
             platformIndex++;

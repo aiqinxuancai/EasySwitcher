@@ -131,8 +131,9 @@ http://<host>/{GROUP}/
 - `group`: 分组名
 - `weight`: 权重（越大越容易被选中）
 - `priority`: 优先级（越小越优先，故障转移使用）
-- `key_header`: 注入 API Key 的请求头
-- `key_prefix`: API Key 前缀（如 `Bearer `）
+- `key_type`: ???????`openai`/`claude`/`gemini`??????? `key_header`/`key_prefix`
+- `key_header`: ?? API Key ???????? `key_type` ????
+- `key_prefix`: API Key ???? `Bearer `???? `key_type` ????
 - `enabled`: 是否启用
 
 策略说明：
@@ -166,8 +167,7 @@ api_key = ""
 group = "default"
 weight = 1
 priority = 0
-key_header = "Authorization"
-key_prefix = "Bearer "
+key_type = "openai"
 enabled = true
 
 [[platforms]]
@@ -177,8 +177,7 @@ api_key = ""
 group = "default"
 weight = 1
 priority = 1
-key_header = "Authorization"
-key_prefix = "Bearer "
+key_type = "openai"
 enabled = true
 
 ```
@@ -204,8 +203,7 @@ api_key = ""
 group = "default"
 weight = 1
 priority = 0
-key_header = "Authorization"
-key_prefix = "Bearer "
+key_type = "openai"
 enabled = true
 
 [[platforms]]
@@ -215,8 +213,7 @@ api_key = ""
 group = "default"
 weight = 1
 priority = 0
-key_header = "Authorization"
-key_prefix = "Bearer "
+key_type = "openai"
 enabled = true
 
 [[platforms]]
@@ -226,8 +223,7 @@ api_key = ""
 group = "default"
 weight = 1
 priority = 1
-key_header = "Authorization"
-key_prefix = "Bearer "
+key_type = "openai"
 enabled = false
 
 [[platforms]]
@@ -237,8 +233,7 @@ api_key = ""
 group = "default"
 weight = 1
 priority = 1
-key_header = "Authorization"
-key_prefix = "Bearer "
+key_type = "openai"
 enabled = true
 ```
 
@@ -271,8 +266,7 @@ api_key = "你的平台Key"
 group = "default"
 weight = 1
 priority = 0
-key_header = "Authorization"
-key_prefix = "Bearer "
+key_type = "openai"
 enabled = true
 
 [[platforms]]
@@ -282,8 +276,7 @@ api_key = "你的平台Key"
 group = "default"
 weight = 1
 priority = 0
-key_header = "Authorization"
-key_prefix = "Bearer "
+key_type = "openai"
 enabled = true
 
 [[platforms]]
@@ -293,8 +286,7 @@ api_key = "你的平台Key"
 group = "default"
 weight = 1
 priority = 1
-key_header = "Authorization"
-key_prefix = "Bearer "
+key_type = "openai"
 enabled = true
 
 [[platforms]]
@@ -304,8 +296,7 @@ api_key = "你的平台Key"
 group = "default"
 weight = 1
 priority = 1
-key_header = "Authorization"
-key_prefix = "Bearer "
+key_type = "openai"
 enabled = true
 
 # 下面是claude分组，使用 http://127.0.0.1:7085/claude 作为Claude Code的配置入口
@@ -317,8 +308,7 @@ api_key = "你的平台Key"
 group = "claude"
 weight = 1
 priority = 0
-key_header = "x-api-key"
-key_prefix = ""
+key_type = "claude"
 enabled = true
 
 [[platforms]]
@@ -328,8 +318,7 @@ api_key = "你的平台Key"
 group = "claude"
 weight = 1
 priority = 0
-key_header = "x-api-key"
-key_prefix = ""
+key_type = "claude"
 enabled = true
 
 [[platforms]]
@@ -339,8 +328,7 @@ api_key = "你的平台Key"
 group = "claude"
 weight = 1
 priority = 1
-key_header = "x-api-key"
-key_prefix = ""
+key_type = "claude"
 enabled = true
 
 [[platforms]]
@@ -350,8 +338,7 @@ api_key = "你的平台Key"
 group = "claude"
 weight = 1
 priority = 1
-key_header = "x-api-key"
-key_prefix = ""
+key_type = "claude"
 enabled = true
 
 ```
@@ -364,23 +351,20 @@ enabled = true
 name = "openai"
 base_url = "https://api.openai.com"
 api_key = "sk-..."
-key_header = "Authorization"
-key_prefix = "Bearer "
+key_type = "openai"
 
 [[platforms]]
 # Gemini：X-Goog-Api-Key，无前缀
 name = "gemini"
 base_url = "https://generativelanguage.googleapis.com"
 api_key = "..."
-key_header = "X-Goog-Api-Key"
-key_prefix = ""
+key_type = "gemini"
 
 [[platforms]]
 # Claude：x-api-key，无前缀
 name = "claude"
 base_url = "https://api.anthropic.com"
 api_key = "sk-ant-..."
-key_header = "x-api-key"
-key_prefix = ""
+key_type = "claude"
 ```
 

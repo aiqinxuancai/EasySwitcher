@@ -27,6 +27,10 @@ public sealed class PlatformConfig
     /// </summary>
     public int Priority { get; set; } = 0;
     /// <summary>
+    /// Predefined key injection type: openai, claude, or gemini.
+    /// </summary>
+    public string? KeyType { get; set; }
+    /// <summary>
     /// 注入 API Key 的请求头名称。
     /// </summary>
     public string? KeyHeader { get; set; }
