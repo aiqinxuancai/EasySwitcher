@@ -6,7 +6,7 @@ COPY . .
 WORKDIR /src/AviSwitch
 ARG TARGETARCH
 RUN if [ "$TARGETARCH" = "arm64" ]; then RID="linux-arm64"; else RID="linux-x64"; fi; \
-    dotnet publish -c Release -r $RID --self-contained true -p:PublishAot=false -o /app/publish
+    dotnet publish -c Release -r $RID --self-contained true -p:PublishAot=false -p:PublishSingleFile=true -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
