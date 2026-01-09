@@ -32,8 +32,8 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Publish
-        run: dotnet publish AviSwitch/AviSwitch.csproj -c Release -r ${{ matrix.rid }} --self-contained true -o publish/${{ matrix.rid }}
+      - name: Publish (non-AOT)
+        run: dotnet publish AviSwitch/AviSwitch.csproj -c Release -r ${{ matrix.rid }} --self-contained true -p:PublishAot=false -o publish/${{ matrix.rid }}
 
       - name: Archive
         shell: pwsh
