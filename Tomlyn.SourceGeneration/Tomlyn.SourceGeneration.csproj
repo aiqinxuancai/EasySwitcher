@@ -10,6 +10,8 @@
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 		<CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+		<PublishAot>false</PublishAot>
+		<IsAotCompatible>false</IsAotCompatible>
 	</PropertyGroup>
 
 	<ItemGroup>
